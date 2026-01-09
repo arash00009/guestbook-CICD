@@ -1,0 +1,350 @@
+---
+# ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: arash-db-config
+  namespace: grupp3
+data:
+  db-name: arash_guestbook
+  db-host: arash-postgres
+  db-port: "5432"
+  db-user: postgres
+  redis-host: arash-redis
+  redis-port: "6379"
+
+---
+# Secrets
+apiVersion: v1
+kind: Secret
+metadata:
+  name: arash-db-password
+  namespace: grupp3
+type: Opaque
+stringData:
+  password: arash-password-123
+
+---
+# PostgreSQL PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: arash-postgres-pvc
+  namespace: grupp3
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# PostgreSQL Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: arash-postgres
+  namespace: grupp3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: arash-guestbook
+      component: postgres
+  template:
+    metadata:
+      labels:
+        app: arash-guestbook
+        component: postgres
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: postgres
+        image: quay.io/fedora/postgresql-15:latest
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          runAsNonRoot: true
+        env:
+        - name: POSTGRESQL_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: arash-db-password
+              key: password
+        - name: POSTGRESQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: arash-db-config
+              key: db-name
+        ports:
+        - containerPort: 5432
+        resources:
+          requests:
+            cpu: 30m
+            memory: 64Mi
+          limits:
+            cpu: 50m
+            memory: 256Mi
+        volumeMounts:
+        - name: arash-postgres-data
+          mountPath: /var/lib/pgsql/data
+      volumes:
+      - name: arash-postgres-data
+        persistentVolumeClaim:
+          claimName: arash-postgres-pvc
+
+---
+# PostgreSQL Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: arash-postgres
+  namespace: grupp3
+spec:
+  type: ClusterIP
+  selector:
+    app: arash-guestbook
+    component: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+
+---
+# Redis PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: arash-redis-pvc
+  namespace: grupp3
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# Redis Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: arash-redis
+  namespace: grupp3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: arash-guestbook
+      component: redis
+  template:
+    metadata:
+      labels:
+        app: arash-guestbook
+        component: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+        resources:
+          requests:
+            cpu: 30m
+            memory: 64Mi
+          limits:
+            cpu: 50m
+            memory: 256Mi
+        volumeMounts:
+        - name: arash-redis-data
+          mountPath: /data
+      volumes:
+      - name: arash-redis-data
+        persistentVolumeClaim:
+          claimName: arash-redis-pvc
+
+---
+# Redis Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: arash-redis
+  namespace: grupp3
+spec:
+  type: ClusterIP
+  selector:
+    app: arash-guestbook
+    component: redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+
+---
+# Backend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: arash-backend
+  namespace: grupp3
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: arash-guestbook
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: arash-guestbook
+        component: backend
+    spec:
+      containers:
+      - name: backend
+        image: arashr/arash-guestbook:backend
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: arash-db-config
+              key: db-host
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: arash-db-config
+              key: db-port
+        - name: DB_USER
+          valueFrom:
+            configMapKeyRef:
+              name: arash-db-config
+              key: db-user
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: arash-db-config
+              key: db-name
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: arash-db-password
+              key: password
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: arash-db-config
+              key: redis-host
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: arash-db-config
+              key: redis-port
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 80m
+            memory: 256Mi
+
+---
+# Backend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: arash-backend
+  namespace: grupp3
+spec:
+  type: ClusterIP
+  selector:
+    app: arash-guestbook
+    component: backend
+  ports:
+  - port: 8080
+    targetPort: 8080
+
+---
+# Backend Route
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: arash-backend
+  namespace: grupp3
+spec:
+  to:
+    kind: Service
+    name: arash-backend
+    weight: 100
+  port:
+    targetPort: 8080
+
+---
+# Frontend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: arash-frontend
+  namespace: grupp3
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: arash-guestbook
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: arash-guestbook
+        component: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: arashr/arash-guestbook:frontend
+        imagePullPolicy: Always
+        env:
+        - name: REACT_APP_BACKEND_URL
+          value: "http://arash-backend-grupp3.apps.devops24.cloud2.se"
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
+
+---
+# Frontend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: arash-frontend
+  namespace: grupp3
+spec:
+  type: ClusterIP
+  selector:
+    app: arash-guestbook
+    component: frontend
+  ports:
+  - port: 8080
+    targetPort: 8080
+
+---
+# Frontend Route
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: arash-frontend
+  namespace: grupp3
+spec:
+  to:
+    kind: Service
+    name: arash-frontend
+  port:
+    targetPort: 8080

@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: arash-frontend
+  name: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: arash-guestbook
+      app: guestbook
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: arash-guestbook
+        app: guestbook
+        component: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: guestbook-frontend:latest
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: arash-frontend
+  name: frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: arash-guestbook
+    app: guestbook
+    component: frontend
+  ports:
+  - port: 8080
+    targetPort: 8080
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: arash-frontend
+  name: frontend
+spec:
+  to:
+    kind: Service
+    name: arash-frontend
+  port:
+    targetPort: 8080
