@@ -6,28 +6,24 @@ spec:
   replicas: 2
   selector:
     matchLabels:
-      app: guestbook
-      component: arash-frontend
+      app: arash-frontend
   template:
     metadata:
       labels:
-        app: guestbook
-        component: arash-frontend
+        app: arash-frontend
     spec:
       containers:
-        - name: arash-frontend
-          image: image: quay.io/arashrahimi/arashr:frontend   
-          imagePullPolicy: Always
-          ports:
-            - containerPort: 8080
-
-          resources:
-            requests:
-              cpu: 100m
-              memory: 256Mi
-            limits:
-              cpu: 100m
-              memory: 512Mi
+      - name: arash-frontend
+        image: quay.io/arashrahimi/arashr:frontend
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 100m
+            memory: 512Mi
 ---
 apiVersion: v1
 kind: Service
