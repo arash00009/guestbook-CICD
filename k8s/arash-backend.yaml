@@ -27,10 +27,9 @@ spec:
     spec:
       containers:
         - name: arash-postgres
-          image: quay.io/arashrahimi/arashr-frontend:
+          image: quay.io/arashrahimi/arashr-postgres:latest
           ports:
             - containerPort: 5432
-         
           resources:
             requests:
               cpu: 100m
@@ -38,7 +37,6 @@ spec:
             limits:
               cpu: 100m
               memory: 512Mi
-          
           env:
             - name: POSTGRESQL_USER
               valueFrom:
@@ -57,7 +55,7 @@ spec:
                   key: db-name
           volumeMounts:
             - name: arash-postgres-data
-              mountPath: /var/lib/postgresql
+              mountPath: /var/lib/postgresql/data
       volumes:
         - name: arash-postgres-data
           persistentVolumeClaim:
@@ -73,6 +71,7 @@ spec:
     app: arash-postgres
   ports:
     - port: 5432
+      targetPort: 5432
 ---
 # Redis
 apiVersion: v1
@@ -106,7 +105,6 @@ spec:
           image: quay.io/kurs/redis:latest
           ports:
             - containerPort: 6379
-       
           resources:
             requests:
               cpu: 100m
@@ -114,7 +112,6 @@ spec:
             limits:
               cpu: 100m
               memory: 512Mi
-          
           env:
             - name: REDIS_PASSWORD
               valueFrom:
@@ -139,9 +136,9 @@ spec:
     app: arash-redis
   ports:
     - port: 6379
-
-# Golang Backend
+      targetPort: 6379
 ---
+# Golang Backend
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -158,11 +155,10 @@ spec:
     spec:
       containers:
         - name: arash-backend
-          image: quay.io/arashrahimi/arashr-frontend:
+          image: quay.io/arashrahimi/arashr-backend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
-         
           resources:
             requests:
               cpu: 100m
@@ -170,7 +166,6 @@ spec:
             limits:
               cpu: 100m
               memory: 512Mi
-            
           env:
             - name: DB_HOST
               valueFrom:
@@ -203,3 +198,4 @@ spec:
     app: arash-backend
   ports:
     - port: 8080
+      targetPort: 8080
