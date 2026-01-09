@@ -4,62 +4,36 @@ on:
   push:
     branches: [ main ]
 
+permissions:
+  contents: write   # gör så GITHUB_TOKEN kan pusha
+
 env:
   IMAGE_REGISTRY: quay.io
   IMAGE_NAME: arashrahimi/arashr
-  CONFIG_REPO: Guestbook-config
+  CONFIG_REPO: Guestbook-config   # bara repo-namn, vi använder repository_owner i klonen
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      
-      - name: Log in to Quay.io
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.IMAGE_REGISTRY }}
-          username: ${{ secrets.QUAY_USERNAME }}
-          password: ${{ secrets.QUAY_PASSWORD }}
-      
-      - name: Generate image tag
-        id: image-tag
-        run: |
-          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
-          IMAGE_TAG="1.0.${GITHUB_RUN_NUMBER}-${SHORT_SHA}"
-          echo "tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
-          echo "Generated tag: ${IMAGE_TAG}"
-      
-      - name: Build and push image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          file: ./backend/Containerfile
-          push: true
-          tags: |
-            ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.image-tag.outputs.tag }}
-            ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          build-args: |
-            APP_VERSION=${{ steps.image-tag.outputs.tag }}
-      
+
+      # ... dina docker-steps ...
+
       - name: Update Kubernetes manifests
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
-          git clone https://${{ secrets.GIT_TOKEN }}@github.com/${{ env.CONFIG_REPO }}.git config-repo
+
+          # CLONA med repository_owner (samma owner som workflow)
+          git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository_owner }}/${{ env.CONFIG_REPO }}.git config-repo
           cd config-repo
-          
-          # Uppdatera backend deployment med ny image
+
           sed -i "s|image: .*arashr-backend:.*|image: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.image-tag.outputs.tag }}|" k8s/arash-backend.yaml
-          
-          # Uppdatera versionstaggen i config
           sed -i "s|APP_VERSION: \".*\"|APP_VERSION: \"${{ steps.image-tag.outputs.tag }}\"|g" k8s/arash-config.yaml
-          
+
           git add k8s/arash-backend.yaml k8s/arash-config.yaml
           git commit -m "Update backend image to ${{ steps.image-tag.outputs.tag }}" || echo "No changes to commit"
           git push origin main || echo "Nothing to push"
