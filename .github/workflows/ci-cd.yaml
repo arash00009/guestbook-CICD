@@ -7,7 +7,7 @@ on:
 env:
   IMAGE_REGISTRY: quay.io
   IMAGE_NAME: arashrahimi/arashr
-  CONFIG_REPO: arashrahimi/Guestbook-config
+  CONFIG_REPO: Guestbook-config
 
 jobs:
   build-and-push:
