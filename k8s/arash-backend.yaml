@@ -56,7 +56,7 @@ spec:
           volumeMounts:
             - name: arash-postgres-data
               mountPath: /var/lib/postgresql/data
-      volumes:
+      volumes:  # ← DENNA SAKNADES!
         - name: arash-postgres-data
           persistentVolumeClaim:
             claimName: arash-postgres-pvc
@@ -121,7 +121,7 @@ spec:
           volumeMounts:
             - name: arash-redis-data
               mountPath: /var/lib/redis/data
-      volumes:
+      volumes:  # ← DENNA SAKNADES!
         - name: arash-redis-data
           persistentVolumeClaim:
             claimName: arash-redis-pvc
