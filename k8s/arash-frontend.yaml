@@ -13,17 +13,18 @@ spec:
         app: arash-frontend
     spec:
       containers:
-      - name: arash-frontend
-        image: quay.io/arashrahimi/arashr:frontend
-        ports:
-        - containerPort: 8080
-        resources:
-          requests:
-            cpu: 100m
-            memory: 256Mi
-          limits:
-            cpu: 100m
-            memory: 512Mi
+        - name: arash-frontend
+          image: quay.io/arashrahimi/arashr:frontend
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 100m
+              memory: 512Mi
 ---
 apiVersion: v1
 kind: Service
@@ -32,19 +33,7 @@ metadata:
 spec:
   type: ClusterIP
   selector:
-    app: guestbook
-    component: arash-frontend
+    app: arash-frontend
   ports:
     - port: 8080
       targetPort: 8080
----
-apiVersion: route.openshift.io/v1
-kind: Route
-metadata:
-  name: arash-frontend
-spec:
-  to:
-    kind: Service
-    name: arash-frontend
-  port:
-    targetPort: 8080
