@@ -10,7 +10,7 @@ permissions:
 env:
   IMAGE_REGISTRY: quay.io
   IMAGE_NAME: arashrahimi/arashr
-  CONFIG_REPO: Guestbook-config   # bara repo-namn, vi använder repository_owner i klonen
+  CONFIG_REPO: arash00009/Guestbook-config   # bara repo-namn, vi använder repository_owner i klonen
 
 jobs:
   build-and-push:
