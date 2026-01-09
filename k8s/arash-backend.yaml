@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: arash-postgres
-          image: quay.io/arashrahimi/arashr-postgres:latest
+          image: registry.redhat.io/rhel9/postgresql-15
           ports:
             - containerPort: 5432
           resources:
@@ -56,7 +56,7 @@ spec:
           volumeMounts:
             - name: arash-postgres-data
               mountPath: /var/lib/postgresql/data
-      volumes:  # ← DENNA SAKNADES!
+      volumes:
         - name: arash-postgres-data
           persistentVolumeClaim:
             claimName: arash-postgres-pvc
@@ -121,7 +121,7 @@ spec:
           volumeMounts:
             - name: arash-redis-data
               mountPath: /var/lib/redis/data
-      volumes:  # ← DENNA SAKNADES!
+      volumes:
         - name: arash-redis-data
           persistentVolumeClaim:
             claimName: arash-redis-pvc
@@ -155,7 +155,7 @@ spec:
     spec:
       containers:
         - name: arash-backend
-          image: image: quay.io/arashrahimi/arashr:backend
+          image: quay.io/arashrahimi/arashr:backend
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
