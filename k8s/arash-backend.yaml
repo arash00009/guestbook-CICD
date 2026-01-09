@@ -1,0 +1,205 @@
+# PostgreSQL
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: arash-postgres-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: lvms-vg1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: arash-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: arash-postgres
+  template:
+    metadata:
+      labels:
+        app: arash-postgres
+    spec:
+      containers:
+        - name: arash-postgres
+          image: quay.io/arashrahimi/arashr-frontend:
+          ports:
+            - containerPort: 5432
+         
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 100m
+              memory: 512Mi
+          
+          env:
+            - name: POSTGRESQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: arash-db-password
+                  key: username
+            - name: POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: arash-db-password
+                  key: password
+            - name: POSTGRESQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: arash-db-config
+                  key: db-name
+          volumeMounts:
+            - name: arash-postgres-data
+              mountPath: /var/lib/postgresql
+      volumes:
+        - name: arash-postgres-data
+          persistentVolumeClaim:
+            claimName: arash-postgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: arash-postgres
+spec:
+  type: ClusterIP
+  selector:
+    app: arash-postgres
+  ports:
+    - port: 5432
+---
+# Redis
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: arash-redis-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: lvms-vg1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: arash-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: arash-redis
+  template:
+    metadata:
+      labels:
+        app: arash-redis
+    spec:
+      containers:
+        - name: arash-redis
+          image: quay.io/kurs/redis:latest
+          ports:
+            - containerPort: 6379
+       
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 100m
+              memory: 512Mi
+          
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-password
+                  key: password
+          volumeMounts:
+            - name: arash-redis-data
+              mountPath: /var/lib/redis/data
+      volumes:
+        - name: arash-redis-data
+          persistentVolumeClaim:
+            claimName: arash-redis-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: arash-redis
+spec:
+  type: ClusterIP
+  selector:
+    app: arash-redis
+  ports:
+    - port: 6379
+
+# Golang Backend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: arash-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: arash-backend
+  template:
+    metadata:
+      labels:
+        app: arash-backend
+    spec:
+      containers:
+        - name: arash-backend
+          image: quay.io/arashrahimi/arashr-frontend:
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+         
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 100m
+              memory: 512Mi
+            
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: arash-db-config
+                  key: db-host
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: arash-db-config
+                  key: redis-host
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: arash-db-config
+                  key: redis-port
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-password
+                  key: password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: arash-backend
+spec:
+  type: ClusterIP
+  selector:
+    app: arash-backend
+  ports:
+    - port: 8080
