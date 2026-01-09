@@ -4,11 +4,6 @@ on:
   push:
     branches: [ main ]
 
-env:
-  IMAGE_REGISTRY: quay.io
-  IMAGE_NAME: arashrahimi/arashr
-
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
