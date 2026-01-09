@@ -1,0 +1,19 @@
+FROM registry.access.redhat.com/ubi10/go-toolset:10.0 AS build
+
+COPY ./go.mod ./go.mod
+COPY ./main.go ./main.go
+
+USER root
+
+RUN go mod tidy
+RUN go build -o /bin/guestbook-api ./main.go
+
+
+
+FROM registry.access.redhat.com/ubi10-minimal:10.0
+
+COPY --from=build /bin/guestbook-api /bin/guestbook-api
+
+EXPOSE 8080
+
+CMD [ "/bin/guestbook-api" ]
