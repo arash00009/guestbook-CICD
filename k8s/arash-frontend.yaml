@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: arash-frontend
-          image: quay.io/arashrahimi/arashr:latest   
+          image: image: quay.io/arashrahimi/arashr:frontend   
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

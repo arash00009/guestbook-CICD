@@ -155,7 +155,7 @@ spec:
     spec:
       containers:
         - name: arash-backend
-          image: quay.io/arashrahimi/arashr-backend:latest
+          image: image: quay.io/arashrahimi/arashr:backend
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
