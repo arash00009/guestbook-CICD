@@ -39,9 +39,22 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ./Containerfile
           push: true
           tags: |
             ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.image-tag.outputs.tag }}
             ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          build-args: |
+            APP_VERSION=${{ steps.image-tag.outputs.tag }}
+      
+      - name: Update Kubernetes manifests
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git clone https://${{ secrets.GIT_TOKEN }}@github.com/${{ env.CONFIG_REPO }}.git config-repo
+          cd config-repo
+          sed -i "s|image: .*arashr:.*|image: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.image-tag.outputs.tag }}|" k8s/deployment.yaml
+          sed -i "s|value: \".*\"|value: \"${{ steps.image-tag.outputs.tag }}\"|" k8s/deployment.yaml
+          git add k8s/deployment.yaml
+          git commit -m "Update image to ${{ steps.image-tag.outputs.tag }}"
+          git push origin main
