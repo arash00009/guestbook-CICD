@@ -185,7 +185,7 @@ spec:
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: redis-password
+                  name: arash-redis-password
                   key: password
 ---
 apiVersion: v1
