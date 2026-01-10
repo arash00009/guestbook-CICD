@@ -4,9 +4,6 @@ on:
   push:
     branches: [ main ]
 
-env:
-  IMAGE_REGISTRY: quay.io
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -25,15 +22,17 @@ jobs:
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
 
-      - name: Build app container
-        run: |
-          docker build -f backend/Containerfile -t quay.io/arashrahimi/arashr:backend ./backend
+       - name: Build app container
 
-      - name: Build frontend container
-        run: |
-          docker build -t quay.io/arashrahimi/arashr:frontend ./frontend
+       run: |
+        podman build -f backend/Containerfile -t quay.io/arashrahimi/arashr-backend:latest ./backend
 
-      - name: Push containers
-        run: |
-          docker push quay.io/arashrahimi/arashr:backend
-          docker push quay.io/arashrahimi/arashr:frontend
+       - name: Build frontend container
+      run: |
+        podman build -f frontend/Containerfile -t quay.io/arashrahimi/arashr-frontend:latest ./frontend
+
+     - name: Push containers
+      run: |
+        podman push quay.io/arashrahimi/arashr-backend:latest
+        podman push quay.io/arashrahimi/arashr-frontend:latest  
+  
